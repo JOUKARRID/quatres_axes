@@ -1,8 +1,0 @@
-streamlit
-pandas
-numpy
-xgboost
-scikit-learn
-sentence-transformers
-joblib
-gdown
