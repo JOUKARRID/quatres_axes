@@ -176,8 +176,6 @@ def clean_value(val):
 # TELECHARGEMENT DEPUIS GOOGLE DRIVE
 # ============================================================
 
-# IDs des fichiers - A REMPLACER PAR VOS VRAIS IDs
-# Pour obtenir l'ID : https://drive.google.com/file/d/[FILE_ID]/view
 FILE_IDS = {
     'vecteurs_complets.npy': '1jRLGiF_Qw9C2fwGWZImpjWnLvcZgFo4Q',
     'ids_bdc.npy': '1aRh-KFLwgLg2EbbnQXgpQ_hSQIvqmSXB',
@@ -216,8 +214,23 @@ def load_models():
                 df_texte = pd.read_csv(os.path.join(tmp_dir, 'BDC_texte.csv'))
                 df_numerique = pd.read_csv(os.path.join(tmp_dir, 'BDC_numerique.csv'))
                 
-                model_concurrence = joblib.load(os.path.join(tmp_dir, 'modele_concurrence_xgb.pkl'))
-                model_fournisseur = joblib.load(os.path.join(tmp_dir, 'modele_fournisseur_xgb.pkl'))
+                # ============================================================
+                # CHARGEMENT XGBOOST AVEC GESTION DES VERSIONS
+                # ============================================================
+                try:
+                    model_concurrence = joblib.load(os.path.join(tmp_dir, 'modele_concurrence_xgb.pkl'))
+                except Exception as e:
+                    st.warning(f"Chargement joblib impossible pour concurrence, tentative load_model...")
+                    model_concurrence = xgb.XGBClassifier()
+                    model_concurrence.load_model(os.path.join(tmp_dir, 'modele_concurrence_xgb.pkl'))
+                
+                try:
+                    model_fournisseur = joblib.load(os.path.join(tmp_dir, 'modele_fournisseur_xgb.pkl'))
+                except Exception as e:
+                    st.warning(f"Chargement joblib impossible pour fournisseur, tentative load_model...")
+                    model_fournisseur = xgb.XGBClassifier()
+                    model_fournisseur.load_model(os.path.join(tmp_dir, 'modele_fournisseur_xgb.pkl'))
+                
                 label_encoder = joblib.load(os.path.join(tmp_dir, 'label_encoder_fournisseur.pkl'))
                 scaler = joblib.load(os.path.join(tmp_dir, 'scaler_normalisation.pkl'))
                 
