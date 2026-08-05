@@ -158,100 +158,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# FONCTIONS DE TELECHARGEMENT DEPUIS GOOGLE DRIVE
-# ============================================================
-
-# IDs des fichiers sur Google Drive
-# Extrait des IDs depuis l'URL : https://drive.google.com/file/d/ID/view
-FILES = {
-    'vecteurs_complets.npy': '1a-9gAfdupm2ew7LhaRHTukrYm0GuTDKS',  # Dossier ID
-    'ids_bdc.npy': '1a-9gAfdupm2ew7LhaRHTukrYm0GuTDKS',  # Dossier ID
-    'BDC_texte.csv': '1a-9gAfdupm2ew7LhaRHTukrYm0GuTDKS',  # Dossier ID
-    'BDC_numerique.csv': '1a-9gAfdupm2ew7LhaRHTukrYm0GuTDKS',
-    'modele_concurrence_xgb.pkl': '1a-9gAfdupm2ew7LhaRHTukrYm0GuTDKS',
-    'modele_fournisseur_xgb.pkl': '1a-9gAfdupm2ew7LhaRHTukrYm0GuTDKS',
-    'label_encoder_fournisseur.pkl': '1a-9gAfdupm2ew7LhaRHTukrYm0GuTDKS',
-    'scaler_normalisation.pkl': '1a-9gAfdupm2ew7LhaRHTukrYm0GuTDKS'
-}
-
-def download_file_from_drive(file_id, output_path):
-    """Telecharge un fichier depuis Google Drive avec gdown"""
-    url = f'https://drive.google.com/uc?id={file_id}'
-    try:
-        gdown.download(url, output_path, quiet=False)
-        return True
-    except Exception as e:
-        st.error(f"Erreur lors du telechargement de {output_path}: {e}")
-        return False
-
-def load_from_drive():
-    """Charge tous les fichiers depuis Google Drive dans un dossier temporaire"""
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        st.info("Telechargement des fichiers depuis Google Drive...")
-        
-        # Telecharger les fichiers
-        for filename in FILES.keys():
-            file_path = os.path.join(tmp_dir, filename)
-            if not download_file_from_drive(FILES[filename], file_path):
-                return None, None, None, None, None, None, None, None
-        
-        st.info("Chargement des fichiers...")
-        
-        # Charger les fichiers
-        try:
-            # Vecteurs
-            features = np.load(os.path.join(tmp_dir, 'vecteurs_complets.npy')).astype(np.float32)
-            ids = np.load(os.path.join(tmp_dir, 'ids_bdc.npy'))
-            
-            # DataFrames
-            df_texte = pd.read_csv(os.path.join(tmp_dir, 'BDC_texte.csv'))
-            df_numerique = pd.read_csv(os.path.join(tmp_dir, 'BDC_numerique.csv'))
-            
-            # Modeles
-            model_concurrence = joblib.load(os.path.join(tmp_dir, 'modele_concurrence_xgb.pkl'))
-            model_fournisseur = joblib.load(os.path.join(tmp_dir, 'modele_fournisseur_xgb.pkl'))
-            label_encoder = joblib.load(os.path.join(tmp_dir, 'label_encoder_fournisseur.pkl'))
-            scaler = joblib.load(os.path.join(tmp_dir, 'scaler_normalisation.pkl'))
-            
-            # Fusionner les DataFrames
-            df_complet = df_texte.merge(df_numerique, on='bdc_id', how='inner')
-            
-            st.success("Tous les fichiers ont ete charges avec succes !")
-            
-            return features, ids, df_complet, model_concurrence, model_fournisseur, label_encoder, scaler, df_texte, df_numerique
-            
-        except Exception as e:
-            st.error(f"Erreur lors du chargement des fichiers: {e}")
-            return None, None, None, None, None, None, None, None, None
-
-# ============================================================
-# CHARGEMENT DES MODELES
-# ============================================================
-
-@st.cache_resource
-def load_models():
-    embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    
-    features, ids, df_complet, model_concurrence, model_fournisseur, label_encoder, scaler, df_texte, df_numerique = load_from_drive()
-    
-    if features is None:
-        st.error("Impossible de charger les fichiers. Verifiez votre connexion.")
-        return None
-    
-    return {
-        'embedder': embedder,
-        'features': features,
-        'ids': ids,
-        'df_complet': df_complet,
-        'df_texte': df_texte,
-        'df_numerique': df_numerique,
-        'model_concurrence': model_concurrence,
-        'model_fournisseur': model_fournisseur,
-        'label_encoder': label_encoder,
-        'scaler': scaler
-    }
-
-# ============================================================
 # FONCTIONS UTILES
 # ============================================================
 
@@ -265,6 +171,76 @@ def clean_value(val):
             return "Non renseigne"
         return val
     return val
+
+# ============================================================
+# TELECHARGEMENT DEPUIS GOOGLE DRIVE
+# ============================================================
+
+# IDs des fichiers - A REMPLACER PAR VOS VRAIS IDs
+# Pour obtenir l'ID : https://drive.google.com/file/d/[FILE_ID]/view
+FILE_IDS = {
+    'vecteurs_complets.npy': '1jRLGiF_Qw9C2fwGWZImpjWnLvcZgFo4Q',
+    'ids_bdc.npy': '1aRh-KFLwgLg2EbbnQXgpQ_hSQIvqmSXB',
+    'BDC_texte.csv': '1fB4sHgs-nwf1Z58vArvXh6THVUZUV1WT',
+    'BDC_numerique.csv': '1eQPYqTTSBQdCN2PQcHBjeLgncsnwH1XI',
+    'modele_concurrence_xgb.pkl': '1b57nbV5y39meBLSPheyXwh1cv9m5TBCx',
+    'modele_fournisseur_xgb.pkl': '1nheQEdSqouGS7xyMRq3rMH9u4rniiNNU',
+    'label_encoder_fournisseur.pkl': '1TWz0dmST3OEbP7ujaC2uvjMcxs-daqhe',
+    'scaler_normalisation.pkl': '1fY_Xk0cO9cbpRsiDBVgdOLEleRy02vls'
+}
+
+@st.cache_resource
+def load_models():
+    """Charge les modeles depuis Google Drive"""
+    
+    with st.spinner("Telechargement des fichiers depuis Google Drive..."):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Telecharger chaque fichier
+            for filename, file_id in FILE_IDS.items():
+                url = f'https://drive.google.com/uc?id={file_id}'
+                output = os.path.join(tmp_dir, filename)
+                
+                try:
+                    gdown.download(url, output, quiet=False)
+                except Exception as e:
+                    st.error(f"Erreur pour {filename}: {e}")
+                    return None
+            
+            st.info("Chargement des fichiers...")
+            
+            try:
+                # Charger les donnees
+                features = np.load(os.path.join(tmp_dir, 'vecteurs_complets.npy')).astype(np.float32)
+                ids = np.load(os.path.join(tmp_dir, 'ids_bdc.npy'))
+                
+                df_texte = pd.read_csv(os.path.join(tmp_dir, 'BDC_texte.csv'))
+                df_numerique = pd.read_csv(os.path.join(tmp_dir, 'BDC_numerique.csv'))
+                
+                model_concurrence = joblib.load(os.path.join(tmp_dir, 'modele_concurrence_xgb.pkl'))
+                model_fournisseur = joblib.load(os.path.join(tmp_dir, 'modele_fournisseur_xgb.pkl'))
+                label_encoder = joblib.load(os.path.join(tmp_dir, 'label_encoder_fournisseur.pkl'))
+                scaler = joblib.load(os.path.join(tmp_dir, 'scaler_normalisation.pkl'))
+                
+                df_complet = df_texte.merge(df_numerique, on='bdc_id', how='inner')
+                
+                embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+                
+                st.success("Tous les fichiers ont ete charges avec succes !")
+                
+                return {
+                    'embedder': embedder,
+                    'features': features,
+                    'ids': ids,
+                    'df_complet': df_complet,
+                    'model_concurrence': model_concurrence,
+                    'model_fournisseur': model_fournisseur,
+                    'label_encoder': label_encoder,
+                    'scaler': scaler
+                }
+                
+            except Exception as e:
+                st.error(f"Erreur lors du chargement: {e}")
+                return None
 
 # ============================================================
 # FONCTIONS DE PREDICTION
@@ -412,13 +388,13 @@ with st.sidebar:
 # CHARGEMENT DES MODELES
 # ============================================================
 
-with st.spinner("Chargement des modeles..."):
-    data = load_models()
+data = load_models()
 
 if data is None:
+    st.error("Erreur de chargement. Veuillez rafraichir la page ou reessayer plus tard.")
     st.stop()
 
-st.success("Modeles charges")
+st.success("Modeles charges avec succes !")
 
 # ============================================================
 # FORMULAIRE DE SAISIE
